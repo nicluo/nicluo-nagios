@@ -4,3 +4,9 @@
   tasks:
     - action: ping
 
+- hosts: nagios-clients
+  roles:
+    - nagios-client
+
+# - include: nagios-clients.yml
+

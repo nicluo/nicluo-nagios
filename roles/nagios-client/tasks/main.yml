@@ -1,0 +1,25 @@
+---
+- name: install nagios plugins and nrpe
+  apt: >
+    name={{ item }}
+    state=latest
+    update_cache=true
+  with_items:
+    - nagios-plugins
+    - nagios-nrpe-server
+  notify:
+    - restart nrpe
+
+- name: add user "nagios"
+  user:
+    name: nagios
+    groups: nagios
+    shell: /sbin/nologin
+    append: yes
+    comment: "nagios nologin user"
+    state: present
+
+- name: copy nrpe.cfg
+  template: src=templates/nrpe.cfg dest=/etc/nagios/nrpe.cfg mode=0644
+  notify:
+    - restart nrpe
