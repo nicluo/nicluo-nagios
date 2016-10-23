@@ -1,0 +1,5 @@
+---
+ses_host: email-smtp.us-east-1.amazonaws.com
+ses_port: 25
+ses_username: xxxxxxxxxxxxxxxxxxxx
+ses_password: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx

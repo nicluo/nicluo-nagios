@@ -4,9 +4,14 @@
   tasks:
     - action: ping
 
+- hosts: nagios-server
+  roles:
+    - postfix
+
 - hosts: nagios-clients
   roles:
     - nagios-client
 
+# - include: nagios-server.yml
 # - include: nagios-clients.yml
 

@@ -1,0 +1,81 @@
+# According to AWS Docs - http://docs.aws.amazon.com/ses/latest/DeveloperGuide/postfix.html
+# Rewrites all sender addresses to a single canonical ses verified address.
+#
+# Written by: l0neranger (https://gist.github.com/l0neranger/fe4a292164387db24521)
+# Modified by: Nicholas Luo
+#
+# Expects a vars files at ../vars/postfix-ses-vars.yml with the following variables:
+#   - ses_host: email-smtp.us-west-x.amazonaws.com
+#   - ses_port: 587
+#   - ses_username: ses-smtp-username
+#   - ses_password: ses-smtp-password
+#
+---
+- include_vars: ../vars/postfix-ses-vars.yml
+
+- name: install postfix and libsasl2-mod
+  apt: >
+    name={{ item }}
+    state=latest
+    update_cache=yes
+  with_items:
+    - postfix
+    - bsd-mailx
+  tags:
+    - install
+
+- name: configure postfix main.cf
+  lineinfile: >
+    backup=yes
+    dest=/etc/postfix/main.cf
+    regexp="^{{ item.variable }}\ ="
+    line="{{ item.variable }} = {{ item.value }}"
+    state=present
+  with_items:
+    - { variable: 'relayhost', value: "{{ ses_host }}:{{ ses_port }}" }
+    - { variable: 'smtp_sasl_auth_enable', value: 'yes' }
+    - { variable: 'smtp_sasl_security_options', value: 'noanonymous' }
+    - { variable: 'smtp_sasl_password_maps', value: 'hash:/etc/postfix/sasl_passwd' }
+    - { variable: 'smtp_use_tls', value: 'yes' }
+    - { variable: 'smtp_tls_security_level', value: 'encrypt' }
+    - { variable: 'smtp_tls_note_starttls_offer', value: 'yes' }
+  tags:
+    - config
+
+- name: create /etc/postfix/sasl_passwd
+  lineinfile: >
+    backup=yes
+    create=yes
+    dest=/etc/postfix/sasl_passwd
+    regexp="^{{ ses_host }}"
+    line="{{ ses_host }}:{{ ses_port }} {{ ses_username }}:{{ ses_password }}"
+    state=present
+  tags:
+    - config
+
+- name: postmap hash:/etc/postfix/sasl_passwd
+  command: postmap hash:/etc/postfix/sasl_passwd
+  tags:
+    - config
+
+- name: remove /etc/postfix/sasl_passwd
+  file: path=/etc/postfix/sasl_passwd state=absent
+  tags:
+    - config
+
+- name: change permissions on /etc/postfix/sasl_passwd.db
+  file: path=/etc/postfix/sasl_passwd.db state=file mode=0600
+  tags:
+    - config
+
+- name: postfix ca cert
+  command: postconf -e 'smtp_tls_CAfile = /etc/ssl/certs/ca-certificates.crt'
+  tags:
+    - config
+
+- name: restart postfix
+  service: >
+    name=postfix
+    state=restarted
+  tags:
+    - config
