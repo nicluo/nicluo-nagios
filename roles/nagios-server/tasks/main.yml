@@ -1,0 +1,52 @@
+---
+- include_vars: ../vars/nagios-vars.yml
+
+- name: install apt packages
+  apt: name={{ item }} state=latest update_cache=true
+  with_items:
+    - build-essential
+    - libgd2-xpm-dev
+    - openssl
+    - libssl-dev
+    - xinetd
+    - apache2-utils
+    - unzip
+    - python-passlib
+
+- name: add user "nagios"
+  user:
+    name: nagios
+    group: nagios
+    groups: nagcmd
+    shell: /sbin/nologin
+    append: yes
+    comment: "nagios nologin user"
+    state: present
+
+# build and install nagios.
+# - include: build-nagios.yml
+
+# Setup apache
+- include: apache.yml
+
+- name: add passwords for nagios
+  htpasswd: >
+    name="{{nagios_user}}"
+    password="{{nagios_password}}"
+    path=/usr/local/nagios/etc/htpasswd.users
+
+
+- name: overwrite contacts.cfg
+  template: >
+    src=contacts.cfg
+    dest=/usr/local/nagios/etc/objects/contacts.cfg
+    owner=nagios
+    group=nagios
+    mode=640
+
+- name: enable nagios
+  service: name=nagios enabled=yes
+
+- name: restart nagios
+  service: name=nagios state=restarted
+  notify: restart apache
