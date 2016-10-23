@@ -1,0 +1,6 @@
+---
+- hosts: all
+  name: ensure connectivity to all hosts
+  tasks:
+    - action: ping
+
