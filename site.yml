@@ -18,7 +18,3 @@
 - hosts: nagios-clients
   roles:
     - nagios-client
-
-# - include: nagios-server.yml
-# - include: nagios-clients.yml
-
