@@ -1,5 +1,11 @@
 ---
 - hosts: all
+  gather_facts: no
+  pre_tasks:
+    - name: 'install python2'
+      raw: sudo apt-get -y install python-simplejson
+
+- hosts: all
   name: ensure connectivity to all hosts
   tasks:
     - action: ping
@@ -12,7 +18,3 @@
 - hosts: nagios-clients
   roles:
     - nagios-client
-
-# - include: nagios-server.yml
-# - include: nagios-clients.yml
-
