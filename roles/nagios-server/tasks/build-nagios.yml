@@ -1,0 +1,32 @@
+- name: download nagios tarball
+  get_url: >
+    dest={{nagios_build_directory}}
+    url={{nagios_tarball}}
+    sha256sum={{nagios_tarball_sha256sum}}
+
+- name: ensure unarchive directory is cleaned
+  file: 
+    path: "{{nagios_build_directory}}/nagios-{{nagios_version}}"
+    state: absent
+
+- name: untar the tarball
+  unarchive: 
+    src: "{{nagios_build_directory}}/nagios-{{nagios_version}}.tar.gz"
+    dest: "{{nagios_build_directory}}"
+    remote_src: yes 
+    copy: no
+
+- name: configure
+  command: "./configure --with-nagios-user=nagios --with-nagios-group=nagios --with-command-user=nagios --with-command-group=nagcmd chdir={{nagios_build_directory}}/nagios-{{nagios_version}}"
+
+- name: make
+  command: "make all chdir={{nagios_build_directory}}/nagios-{{nagios_version}}"
+
+- name: install nagios package
+  command: "make install chdir={{nagios_build_directory}}/nagios-{{nagios_version}}"
+
+- name: install sample config files
+  command: "make install-config chdir={{nagios_build_directory}}/nagios-{{nagios_version}}"
+
+- name: configure external command permissions
+  command: "make install-commandmode chdir={{nagios_build_directory}}/nagios-{{nagios_version}}"

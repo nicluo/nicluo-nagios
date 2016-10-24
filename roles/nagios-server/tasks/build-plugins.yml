@@ -1,0 +1,26 @@
+- name: download nagios plugins tarball
+  get_url: >
+    dest="{{nagios_build_directory}}"
+    url={{nagios_plugin_tarball}}
+    sha256sum={{nagios_plugin_tarball_sha256sum}}
+
+- name: ensure unarchive directory is cleaned
+  file: 
+    path: "{{nagios_build_directory}}/nagios-plugins-{{nagios_plugins_version}}"
+    state: absent
+
+- name: untar the tarball
+  unarchive: 
+    src: "{{nagios_build_directory}}/nagios-plugins-{{nagios_plugins_version}}.tar.gz"
+    dest: "{{nagios_build_directory}}"
+    remote_src: yes 
+    copy: no
+
+- name: configure
+  command: "./configure --with-nagios-user=nagios --with-nagios-group=nagios --with-openssl=/usr/bin/openssl --enable-perl-modules --enable-libtap chdir={{nagios_build_directory}}/nagios-plugins-{{nagios_plugins_version}}"
+
+- name: make
+  command: "make all chdir={{nagios_build_directory}}/nagios-plugins-{{nagios_plugins_version}}"
+
+- name: install nagios plugins package
+  command: "make install chdir={{nagios_build_directory}}/nagios-plugins-{{nagios_plugins_version}}"

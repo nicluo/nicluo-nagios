@@ -1,0 +1,32 @@
+- name: download nagios nrpe tarball
+  get_url: >
+    dest={{nagios_build_directory}}
+    url={{nagios_nrpe_tarball}}
+    sha256sum={{nagios_nrpe_tarball_sha256sum}}
+
+- name: ensure unarchive directory is cleaned
+  file: 
+    path: "{{nagios_build_directory}}/nrpe-{{nagios_nrpe_version}}"
+    state: absent
+
+- name: untar the tarball
+  unarchive: 
+    src: "{{nagios_build_directory}}/nrpe-{{nagios_nrpe_version}}.tar.gz"
+    dest: "{{nagios_build_directory}}"
+    remote_src: yes 
+    copy: no
+
+- name: configure
+  command: "./configure --enable-command-args --with-nagios-user=nagios --with-nagios-group=nagios --with-ssl=/usr/bin/openssl --with-ssl-lib=/usr/lib/x86_64-linux-gnu chdir={{nagios_build_directory}}/nrpe-{{nagios_nrpe_version}}"
+
+- name: make
+  command: "make all chdir={{nagios_build_directory}}/nrpe-{{nagios_nrpe_version}}"
+
+- name: install nagios nrpe package
+  command: "make install chdir={{nagios_build_directory}}/nrpe-{{nagios_nrpe_version}}"
+
+- name: install nagios nrpe startup script
+  command: "make install-init chdir={{nagios_build_directory}}/nrpe-{{nagios_nrpe_version}}"
+
+- name: restart xinetd
+  service: name=xinetd state=restarted
