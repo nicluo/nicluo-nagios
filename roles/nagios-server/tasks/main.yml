@@ -1,0 +1,98 @@
+---
+- include_vars: ../vars/nagios-vars.yml
+
+- name: install apt packages
+  apt: name={{ item }} state=latest update_cache=true
+  with_items:
+    - apache2
+    - libapache2-mod-php
+    - apache2-utils
+    - build-essential
+    - libgd2-xpm-dev
+    - openssl
+    - libssl-dev
+    - xinetd
+    - unzip
+    - python-passlib
+
+- name: create nagios group
+  group: >
+    gid=3000
+    name=nagios
+
+- name: create nagcmd group
+  group: >
+    gid=3001
+    name=nagcmd
+
+- name: add user "nagios"
+  user:
+    name: nagios
+    group: nagios
+    groups: nagcmd
+    shell: /sbin/nologin
+    append: yes
+    comment: "nagios nologin user"
+    state: present
+
+# build and install nagios
+- include: build-nagios.yml
+
+# build and install nagios plugins
+- include: build-plugins.yml
+
+# build and install nrpe
+- include: build-nrpe.yml
+
+# Setup apache
+- include: apache.yml
+
+- name: add passwords for nagios
+  htpasswd: >
+    name="{{nagios_user}}"
+    password="{{nagios_password}}"
+    path=/usr/local/nagios/etc/htpasswd.users
+
+- name: add check_nrpe command
+  blockinfile:
+    dest: /usr/local/nagios/etc/objects/commands.cfg
+    block: |
+      define command {
+        command_name                             check_nrpe
+        command_line                             $USER1$/check_nrpe -H $HOSTADDRESS$ -t 30 -c $ARG1$ $ARG2$
+      }
+
+- name: create servers config directory
+  file:
+    path: "/usr/local/nagios/etc/servers"
+    state: directory
+    recurse: yes
+
+- name: enable servers config directory
+  lineinfile:
+    dest: /usr/local/nagios/etc/nagios.cfg
+    regexp: '^#cfg_dir=/usr/local/nagios/etc/servers'
+    line: 'cfg_dir=/usr/local/nagios/etc/servers'
+    backrefs: yes
+
+- name: generate servers config
+  template: src=nagios.client.conf dest=/usr/local/nagios/etc/servers/{{ item.hostname }}.cfg
+  with_items: "{{ nagios_clients }}"
+
+- name: create nagios.service
+  template: src=nagios.service dest=/etc/systemd/system/nagios.service
+
+- name: overwrite contacts.cfg
+  template: >
+    src=contacts.cfg
+    dest=/usr/local/nagios/etc/objects/contacts.cfg
+    owner=nagios
+    group=nagios
+    mode=640
+
+- name: enable nagios
+  service: name=nagios enabled=yes
+
+- name: restart nagios
+  service: name=nagios state=restarted
+  notify: restart apache

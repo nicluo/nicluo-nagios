@@ -6,6 +6,7 @@
 
 - hosts: nagios-server
   roles:
+    - nagios-server
     - postfix
 
 - hosts: nagios-clients

@@ -1,0 +1,33 @@
+---
+- name: add user www-data to nagcmd group
+  user:
+    name: www-data
+    groups: nagcmd
+    state: present
+
+- name: add passwords for nagios
+  htpasswd: >
+    name="{{nagios_user}}"
+    password="{{nagios_password}}"
+    path=/usr/local/nagios/etc/htpasswd.users
+
+- name: set permissions on new password file
+  file: >
+    path=/usr/local/nagios/etc/htpasswd.users
+    owner=nagios
+    group=nagcmd
+
+- name: copy nagios vhost
+  template: >
+    src=nagios.vhost.conf
+    dest=/etc/apache2/sites-available/nagios.conf
+    owner=root
+    group=root
+    mode=640
+  when: not (legacy | default(false))
+
+- name: enable nagios vhost
+  command: "a2ensite nagios"
+
+- name: enable apache cgi
+  command: "a2enmod cgi"
