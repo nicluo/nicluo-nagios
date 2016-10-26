@@ -1,5 +1,6 @@
 ---
 - name: install nagios plugins and nrpe
+  become: true
   apt: >
     name={{ item }}
     state=latest
@@ -11,6 +12,7 @@
     - restart nrpe
 
 - name: add user "nagios"
+  become: true
   user:
     name: nagios
     groups: nagios
@@ -20,6 +22,7 @@
     state: present
 
 - name: copy nrpe.cfg
+  become: true
   template: src=templates/nrpe.cfg dest=/etc/nagios/nrpe.cfg mode=0644
   notify:
     - restart nrpe
